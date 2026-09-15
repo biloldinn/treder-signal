@@ -82,19 +82,13 @@ async def send_ad(bot: Bot, user, chat):
     caption = f"🎉 {mention}, tabriklaymiz!\n\n{txt}"
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=btn_text, url=ad["link"])]])
 
-    try:
-        if ad["photo_id"]:
-            await bot.send_photo(chat.id, ad["photo_id"], caption=caption, parse_mode=ParseMode.HTML, reply_markup=kb)
-        else:
-            await bot.send_message(chat.id, caption, reply_markup=kb, disable_web_page_preview=False)
-        await db.db_log_stat(user.id, chat.id, "message_sent")
-    except Exception: pass
-
+    # Faqat lichkaga yuborish (Kanalga tashlamaydi)
     try:
         if ad["photo_id"]:
             await bot.send_photo(user.id, ad["photo_id"], caption=caption, parse_mode=ParseMode.HTML, reply_markup=kb)
         else:
             await bot.send_message(user.id, caption, reply_markup=kb, disable_web_page_preview=False)
+        await db.db_log_stat(user.id, chat.id, "message_sent")
     except Exception: pass
 
 @router.chat_join_request()
