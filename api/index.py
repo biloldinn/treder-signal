@@ -6,10 +6,10 @@ from aiogram.enums import ParseMode
 import asyncio
 
 import db
-from bot import router, BOT_TOKEN
+from bot import router
 
 # Token in code or env
-BOT_TOKEN_ENV = os.getenv("BOT_TOKEN", BOT_TOKEN)
+BOT_TOKEN_ENV = os.getenv("BOT_TOKEN", "8978385446:AAFA8yY_bbnehKBJDEDav_a1ctb2GBPZvpI")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL", "YOUR_VERCEL_URL/api/webhook") # Replace with vercel URL later
 
 bot = Bot(token=BOT_TOKEN_ENV, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
