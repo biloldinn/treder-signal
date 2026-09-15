@@ -10,7 +10,7 @@ from bot import router
 
 # Token in code or env
 BOT_TOKEN_ENV = os.getenv("BOT_TOKEN", "8978385446:AAFA8yY_bbnehKBJDEDav_a1ctb2GBPZvpI")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL", "YOUR_VERCEL_URL/api/webhook") # Replace with vercel URL later
+WEBHOOK_URL = "https://treder-signal.vercel.app/api/webhook"
 
 bot = Bot(token=BOT_TOKEN_ENV, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
@@ -21,13 +21,6 @@ app = FastAPI()
 @app.on_event("startup")
 async def on_startup():
     await db.db_init()
-    # Webhook requires setting the URL. In Vercel, it's better to do this manually via browser once:
-    # https://api.telegram.org/bot<TOKEN>/setWebhook?url=<URL>
-    # But we can try setting it on startup if WEBHOOK_URL is configured
-    try:
-        await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
-    except Exception as e:
-        print("Failed to set webhook:", e)
 
 @app.post("/api/webhook")
 async def webhook(request: Request):
