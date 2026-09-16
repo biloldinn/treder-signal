@@ -91,11 +91,7 @@ async def send_ad(bot: Bot, user, chat):
         await db.db_log_stat(user.id, chat.id, "message_sent")
     except Exception: pass
 
-@router.chat_join_request()
-async def on_join_request(update: ChatJoinRequest, bot: Bot):
-    try: await update.approve()
-    except Exception: return
-    await send_ad(bot, update.from_user, update.chat)
+
 
 @router.chat_member(ChatMemberUpdatedFilter(JOIN_TRANSITION))
 async def on_user_join(event: ChatMemberUpdated, bot: Bot):
