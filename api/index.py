@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from aiogram import Bot, Dispatcher, types
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -22,22 +22,27 @@ app = FastAPI()
 async def on_startup():
     await db.db_init()
 
+LAST_ERROR = "No errors yet"
+
 @app.post("/api/webhook")
 async def webhook(request: Request):
+    global LAST_ERROR
     try:
         update_data = await request.json()
-        if update_data.get("update_id") == 999999:
-            res = await db.fetch("SELECT column_name FROM information_schema.columns WHERE table_name='channels'")
-            return {"columns": [dict(r) for r in res]}
-        
         update = types.Update(**update_data)
         await dp.feed_update(bot, update)
         return {"status": "ok"}
     except Exception as e:
         import traceback
         err = traceback.format_exc()
+        LAST_ERROR = err
         print("WEBHOOK ERROR:", err)
-        return {"status": "error", "detail": err}
+        return Response(content="Error", status_code=500)
+
+@app.get("/api/lasterror")
+async def get_last_error():
+    global LAST_ERROR
+    return {"error": LAST_ERROR}
 
 @app.get("/")
 async def root():
