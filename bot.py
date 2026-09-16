@@ -94,6 +94,14 @@ async def send_ad(bot: Bot, user, chat):
 
 
 
+@router.chat_join_request()
+async def on_join_request(update: ChatJoinRequest, bot: Bot):
+    ch = await db.db_get_channel(update.chat.id)
+    if ch and ch.get("auto_approve"):
+        try: await update.approve()
+        except Exception: pass
+        # The approve triggers ChatMemberUpdated event, which triggers on_user_join automatically.
+
 @router.chat_member(ChatMemberUpdatedFilter(JOIN_TRANSITION))
 async def on_user_join(event: ChatMemberUpdated, bot: Bot):
     if event.new_chat_member.user.is_bot: return
@@ -137,10 +145,13 @@ async def cb_setup_ad(cb: CallbackQuery):
 
 async def channel_manage_kb(ch_id):
     ad = await db.db_get_ad(ch_id)
+    ch = await db.db_get_channel(ch_id)
     rows = []
     if ad:
         toggle_text = "⛔ Reklamani O'CHIRISH (OFF)" if ad["is_active"] else "✅ Reklamani YOQISH (ON)"
+        auto_text = "⛔ Zayavka qabul qilishni O'CHIRISH" if ch.get("auto_approve") else "✅ Zayavkani AVTOMATIK qabul qilish"
         rows.append([InlineKeyboardButton(text=toggle_text, callback_data=f"toggle_{ch_id}")])
+        rows.append([InlineKeyboardButton(text=auto_text, callback_data=f"toggleauto_{ch_id}")])
         rows.append([InlineKeyboardButton(text="👁 Reklamani ko'rish (Preview)", callback_data=f"preview_{ch_id}")])
         rows.append([InlineKeyboardButton(text="✏️ Tahrirlash (qayta sozlash)", callback_data=f"edit_{ch_id}")])
         rows.append([InlineKeyboardButton(text="🗑 Reklamani o'chirish", callback_data=f"deladq_{ch_id}")])
@@ -159,12 +170,14 @@ async def cb_manage_channel(cb: CallbackQuery):
     ad = await db.db_get_ad(ch_id)
     if ad:
         status = "✅ <b>Faol</b>" if ad["is_active"] else "⛔ <b>O'chirilgan</b>"
+        auto_appr = "✅ <b>Yoqilgan (Bot qabul qiladi)</b>" if ch.get("auto_approve") else "⛔ <b>O'chirilgan (O'zingiz qabul qilasiz)</b>"
         has_photo = "🖼 Rasm bor" if ad["photo_id"] else "📝 Rasmsiz"
         sent = await db.db_stats_by_channel(ch_id)
         text = (
             f"📡 <b>{ch['title']}</b>\n"
             f"📋 <b>Reklama:</b>\n"
             f"📌 {status} | {has_photo}\n"
+            f"🤖 Avto-qabul: {auto_appr}\n"
             f"📝 <i>{ad['text'][:120]}...</i>\n"
             f"🔘 Tugma: <b>{ad['button_text']}</b>\n"
             f"📨 Yuborilgan: {sent} ta"
@@ -182,6 +195,16 @@ async def cb_toggle(cb: CallbackQuery):
     if not ad: return await cb.answer("Reklama topilmadi", show_alert=True)
     await db.db_toggle_ad(ch_id, not ad["is_active"])
     await cb.answer("Holat o'zgardi!", show_alert=True)
+    cb.data = f"manage_{ch_id}"
+    await cb_manage_channel(cb)
+
+@router.callback_query(F.data.startswith("toggleauto_"))
+async def cb_toggleauto(cb: CallbackQuery):
+    ch_id = int(cb.data.split("_", 1)[1])
+    ch = await db.db_get_channel(ch_id)
+    if not ch: return await cb.answer("Kanal topilmadi", show_alert=True)
+    await db.db_toggle_auto_approve(ch_id, not ch.get("auto_approve"))
+    await cb.answer("Avto-qabul qilish o'zgardi!", show_alert=True)
     cb.data = f"manage_{ch_id}"
     await cb_manage_channel(cb)
 

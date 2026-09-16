@@ -34,6 +34,10 @@ async def db_init():
             user_id BIGINT PRIMARY KEY, username TEXT, full_name TEXT, joined_at TEXT)''')
         await conn.execute('''CREATE TABLE IF NOT EXISTS channels (
             channel_id BIGINT PRIMARY KEY, title TEXT, owner_id BIGINT DEFAULT 0, added_at TEXT)''')
+        try:
+            await conn.execute("ALTER TABLE channels ADD COLUMN auto_approve INTEGER DEFAULT 0")
+        except Exception:
+            pass
         await conn.execute('''CREATE TABLE IF NOT EXISTS ads (
             channel_id BIGINT PRIMARY KEY, text TEXT, link TEXT,
             button_text TEXT, photo_id TEXT, is_active INTEGER DEFAULT 1, created_at TEXT)''')
@@ -102,3 +106,6 @@ async def db_stats_by_channel(ch_id):
 async def db_total_sent():
     res = await fetchval("SELECT COUNT(*) FROM stats WHERE action='message_sent'")
     return res or 0
+
+async def db_toggle_auto_approve(ch_id, active):
+    await execute("UPDATE channels SET auto_approve=$1 WHERE channel_id=$2", 1 if active else 0, ch_id)
