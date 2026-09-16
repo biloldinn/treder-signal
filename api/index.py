@@ -21,16 +21,6 @@ app = FastAPI()
 @app.on_event("startup")
 async def on_startup():
     await db.db_init()
-    # Super adminlarga xabar yuborish
-    try:
-        from bot import SUPER_ADMINS
-        for admin in SUPER_ADMINS:
-            try:
-                await bot.send_message(admin, "♻️ Bot yangilandi va ishga tushdi (Yoki server uyg'ondi)!")
-            except Exception:
-                pass
-    except Exception:
-        pass
 
 @app.post("/api/webhook")
 async def webhook(request: Request):
