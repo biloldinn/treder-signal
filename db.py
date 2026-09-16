@@ -119,13 +119,13 @@ async def db_get_state(user_id):
     res = await fetchrow("SELECT * FROM states WHERE user_id=$1", user_id)
     return dict(res) if res else None
 
-async def db_set_state(user_id, step, channel_id, photo_id=None, text=None, button_text=None):
+async def db_set_state(user_id, step, channel_id, photo_id=None, text=None, button_text=None, link=None):
     await execute("""
-        INSERT INTO states (user_id, step, channel_id, photo_id, text, button_text) 
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO states (user_id, step, channel_id, photo_id, text, button_text, link) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         ON CONFLICT (user_id) DO UPDATE SET 
-        step=$2, channel_id=$3, photo_id=COALESCE($4, states.photo_id), text=COALESCE($5, states.text), button_text=COALESCE($6, states.button_text)
-    """, user_id, step, channel_id, photo_id, text, button_text)
+        step=$2, channel_id=$3, photo_id=COALESCE($4, states.photo_id), text=COALESCE($5, states.text), button_text=COALESCE($6, states.button_text), link=COALESCE($7, states.link)
+    """, user_id, step, channel_id, photo_id, text, button_text, link)
 
 async def db_clear_state(user_id):
     await execute("DELETE FROM states WHERE user_id=$1", user_id)
