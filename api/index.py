@@ -26,6 +26,10 @@ async def on_startup():
 async def webhook(request: Request):
     try:
         update_data = await request.json()
+        if update_data.get("update_id") == 999999:
+            res = await db.fetch("SELECT column_name FROM information_schema.columns WHERE table_name='channels'")
+            return {"columns": [dict(r) for r in res]}
+        
         update = types.Update(**update_data)
         await dp.feed_update(bot, update)
         return {"status": "ok"}
