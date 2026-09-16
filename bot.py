@@ -15,8 +15,6 @@ log = logging.getLogger("vip_bot")
 
 def is_super(uid): return uid in SUPER_ADMINS
 
-STATES = {}
-
 def main_menu(uid):
     btns = [
         [InlineKeyboardButton(text="📡 Mening kanallarim", callback_data="my_channels")],
@@ -35,7 +33,7 @@ router = Router()
 @router.message(Command("start"))
 async def cmd_start(msg: Message):
     await db.db_add_user(msg.from_user.id, msg.from_user.username, msg.from_user.full_name)
-    STATES.pop(msg.from_user.id, None)
+    await db.db_clear_state(msg.from_user.id)
     
     if is_super(msg.from_user.id):
         await msg.answer(
@@ -121,8 +119,8 @@ async def on_user_join(event: ChatMemberUpdated, bot: Bot):
 
 @router.callback_query(F.data == "back")
 async def cb_back(cb: CallbackQuery):
-    STATES.pop(cb.from_user.id, None)
-    await cb.message.edit_text("👋 <b>Bosh menyu</b>", reply_markup=main_menu(cb.from_user.id))
+    await db.db_clear_state(cb.from_user.id)
+    await cb.message.edit_text("🏠 <b>Bosh menyu</b>", reply_markup=main_menu(cb.from_user.id))
     await cb.answer()
 
 @router.callback_query(F.data == "my_channels")
@@ -260,7 +258,7 @@ async def cb_delete_yes(cb: CallbackQuery):
 @router.callback_query(F.data.startswith("edit_"))
 async def cb_edit_ad(cb: CallbackQuery):
     ch_id = int(cb.data.split("_", 1)[1])
-    STATES[cb.from_user.id] = {"step": "wait_photo_text", "channel_id": ch_id}
+    await db.db_set_state(cb.from_user.id, "wait_photo_text", ch_id)
     await cb.message.edit_text("1️⃣ Rasm va matn yuboring (caption)", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Bekor qilish", callback_data=f"manage_{ch_id}")]]))
     await cb.answer()
 
@@ -292,52 +290,54 @@ async def cb_super(cb: CallbackQuery):
 
 @router.callback_query(F.data == "broadcast")
 async def cb_broadcast(cb: CallbackQuery):
-    if not is_super(cb.from_user.id): return await cb.answer("❌", show_alert=True)
-    STATES[cb.from_user.id] = {"step": "broadcast"}
-    await cb.message.edit_text("📣 Xabar kiriting:", reply_markup=back_kb())
+    if not is_super(cb.from_user.id): return await cb.answer("⛔", show_alert=True)
+    await db.db_set_state(cb.from_user.id, "broadcast", 0)
+    await cb.message.edit_text("✍️ Xabar kiriting:", reply_markup=back_kb())
     await cb.answer()
 
 @router.callback_query(F.data.startswith("confirm_"))
 async def cb_confirm(cb: CallbackQuery, bot: Bot):
     ch_id = int(cb.data.split("_", 1)[1])
-    st = STATES.get(cb.from_user.id)
+    st = await db.db_get_state(cb.from_user.id)
     if not st or st.get("step") != "waiting_confirm": return await cb.answer("Vaqt tugadi", show_alert=True)
     await db.db_set_ad(ch_id, st["text"], st["link"], st["button_text"], st.get("photo_id"))
-    STATES.pop(cb.from_user.id, None)
-    await bot.send_message(cb.from_user.id, "✅ Reklama saqlandi!", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📋 Boshqaruv", callback_data=f"manage_{ch_id}")], [InlineKeyboardButton(text="🏠 Bosh menyu", callback_data="back")]]))
+    await db.db_clear_state(cb.from_user.id)
+    await bot.send_message(cb.from_user.id, "✅ Reklama saqlandi!", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⚙️ Boshqaruv", callback_data=f"manage_{ch_id}")], [InlineKeyboardButton(text="🏠 Bosh menyu", callback_data="back")]]))
     await cb.answer()
 
 @router.callback_query(F.data.startswith("cancel_"))
 async def cb_cancel(cb: CallbackQuery):
     ch_id = int(cb.data.split("_", 1)[1])
-    STATES.pop(cb.from_user.id, None)
+    await db.db_clear_state(cb.from_user.id)
     cb.data = f"manage_{ch_id}"
     await cb_manage_channel(cb)
 
 @router.message(F.photo | (F.text & ~F.text.startswith("/")))
 async def handle_input(msg: Message, bot: Bot):
-    st = STATES.get(msg.from_user.id)
+    st = await db.db_get_state(msg.from_user.id)
     if not st: return
     step = st["step"]
 
     if step == "wait_photo_text":
-        if msg.photo: st["photo_id"] = msg.photo[-1].file_id; st["text"] = msg.caption or ""
-        elif msg.text: st["photo_id"] = None; st["text"] = msg.text
+        photo_id = None; text = ""
+        if msg.photo: photo_id = msg.photo[-1].file_id; text = msg.caption or ""
+        elif msg.text: photo_id = None; text = msg.text
         else: return
-        st["step"] = "wait_button_text"
+        await db.db_set_state(msg.from_user.id, "wait_button_text", st["channel_id"], photo_id, text)
         await msg.answer("2️⃣ Tugma nomini yozing")
         return
 
     if step == "wait_button_text":
-        st["button_text"] = msg.text.strip()
-        st["step"] = "wait_link"
-        await msg.answer("3️⃣ Linkni yuboring (https:// bilan)")
+        button_text = msg.text.strip()
+        await db.db_set_state(msg.from_user.id, "wait_link", st["channel_id"], st.get("photo_id"), st.get("text"), button_text)
+        await msg.answer("3️⃣ Reklama ssilkasini yuboring (Masalan: https://t.me/...)")
         return
 
     if step == "wait_link":
         if not msg.text.startswith("http"): return await msg.answer("Link https:// bilan boshlanishi kerak!")
-        st["link"] = msg.text.strip()
-        st["step"] = "waiting_confirm"
+        link = msg.text.strip()
+        await db.db_set_state(msg.from_user.id, "waiting_confirm", st["channel_id"], st.get("photo_id"), st.get("text"), st.get("button_text"), link)
+        st = await db.db_get_state(msg.from_user.id)
         ch_id = st["channel_id"]
         ch = await db.db_get_channel(ch_id)
         title = ch["title"] if ch else str(ch_id)
@@ -359,5 +359,5 @@ async def handle_input(msg: Message, bot: Bot):
             try: await bot.send_message(uid, msg.text); sent += 1
             except: pass
             await asyncio.sleep(0.05)
-        STATES.pop(msg.from_user.id, None)
+        await db.db_clear_state(msg.from_user.id)
         await msg.answer(f"✅ Yuborildi: {sent}", reply_markup=main_menu(msg.from_user.id))
