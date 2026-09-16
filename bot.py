@@ -79,8 +79,11 @@ async def send_ad(bot: Bot, user, chat):
     ad = await db.db_get_ad(chat.id)
     if not ad or not ad["is_active"]: return
     
-    # Do not send twice if already sent
-    already_sent = await db.fetchval("SELECT 1 FROM stats WHERE user_id=$1 AND channel_id=$2", user.id, chat.id)
+    # Faqat oxirgi 1 daqiqa ichida jo'natilmagan bo'lsa jo'natamiz (ikkita ketib qolishini oldini olish uchun)
+    already_sent = await db.fetchval(
+        "SELECT 1 FROM stats WHERE user_id=$1 AND channel_id=$2 AND CAST(timestamp AS timestamp) > NOW() - INTERVAL '1 minute'", 
+        user.id, chat.id
+    )
     if already_sent: return
 
     mention = f'<a href="tg://user?id={user.id}">{user.full_name}</a>'
