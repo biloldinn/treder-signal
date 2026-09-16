@@ -45,7 +45,7 @@ async def db_init():
         await conn.execute('''CREATE TABLE IF NOT EXISTS ads (
             channel_id BIGINT PRIMARY KEY, photo_id TEXT, text TEXT, button_text TEXT, link TEXT, is_active INTEGER)''')
         await conn.execute('''CREATE TABLE IF NOT EXISTS stats (
-            id SERIAL PRIMARY KEY, user_id BIGINT, channel_id BIGINT, action TEXT, timestamp TEXT)''')
+            id SERIAL PRIMARY KEY, user_id BIGINT, channel_id BIGINT, action TEXT, created_at TEXT)''')
         await conn.execute('''CREATE TABLE IF NOT EXISTS states (
             user_id BIGINT PRIMARY KEY, step TEXT, channel_id BIGINT, photo_id TEXT, text TEXT, button_text TEXT, link TEXT)''')
     finally:

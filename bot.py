@@ -79,7 +79,7 @@ async def send_ad(bot: Bot, user, chat):
     
     # Faqat oxirgi 1 daqiqa ichida jo'natilmagan bo'lsa jo'natamiz (ikkita ketib qolishini oldini olish uchun)
     already_sent = await db.fetchval(
-        "SELECT 1 FROM stats WHERE user_id=$1 AND channel_id=$2 AND CAST(timestamp AS timestamp) > NOW() - INTERVAL '1 minute'", 
+        "SELECT 1 FROM stats WHERE user_id=$1 AND channel_id=$2 AND CAST(created_at AS timestamp) > NOW() - INTERVAL '1 minute'", 
         user.id, chat.id
     )
     if already_sent: return
