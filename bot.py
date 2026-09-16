@@ -78,6 +78,10 @@ async def send_ad(bot: Bot, user, chat):
     await db.db_add_user(user.id, user.username, user.full_name)
     ad = await db.db_get_ad(chat.id)
     if not ad or not ad["is_active"]: return
+    
+    # Do not send twice if already sent
+    already_sent = await db.fetchval("SELECT 1 FROM stats WHERE user_id=$1 AND channel_id=$2", user.id, chat.id)
+    if already_sent: return
 
     mention = f'<a href="tg://user?id={user.id}">{user.full_name}</a>'
     txt = ad["text"].replace("{name}", mention).replace("{channel}", f"<b>{chat.title}</b>")
@@ -99,10 +103,13 @@ async def send_ad(bot: Bot, user, chat):
 @router.chat_join_request()
 async def on_join_request(update: ChatJoinRequest, bot: Bot):
     ch = await db.db_get_channel(update.chat.id)
+    # Avval reklamani tashlaymiz (zayavka tushgan zahoti!)
+    await send_ad(bot, update.from_user, update.chat)
+    
+    # Keyin agar avto-qabul yoqilgan bo'lsa, qabul qilamiz
     if ch and ch.get("auto_approve"):
         try: await update.approve()
         except Exception: pass
-        # The approve triggers ChatMemberUpdated event, which triggers on_user_join automatically.
 
 @router.chat_member(ChatMemberUpdatedFilter(JOIN_TRANSITION))
 async def on_user_join(event: ChatMemberUpdated, bot: Bot):
