@@ -34,6 +34,8 @@ router = Router()
 
 @router.message(Command("start"))
 async def cmd_start(msg: Message):
+    if not is_super(msg.from_user.id):
+        return await msg.answer("❌ Bu bot faqat maxsus adminlar uchun ishlaydi.")
     await db.db_add_user(msg.from_user.id, msg.from_user.username, msg.from_user.full_name)
     STATES.pop(msg.from_user.id, None)
     await msg.answer(
