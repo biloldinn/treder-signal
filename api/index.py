@@ -33,6 +33,10 @@ async def webhook(request: Request):
         await dp.feed_update(bot, update)
         return {"status": "ok"}
     except Exception as e:
+        from aiogram.exceptions import TelegramBadRequest
+        if isinstance(e, TelegramBadRequest) and "message is not modified" in str(e).lower():
+            # Harmless error, UI doesn't need updating. Ignore it so Telegram buttons don't hang.
+            return {"status": "ok"}
         import traceback
         err = traceback.format_exc()
         LAST_ERROR = err
