@@ -24,11 +24,16 @@ async def on_startup():
 
 @app.post("/api/webhook")
 async def webhook(request: Request):
-    update_data = await request.json()
-    update = types.Update(**update_data)
-    # Feed update to aiogram
-    await dp.feed_update(bot, update)
-    return {"status": "ok"}
+    try:
+        update_data = await request.json()
+        update = types.Update(**update_data)
+        await dp.feed_update(bot, update)
+        return {"status": "ok"}
+    except Exception as e:
+        import traceback
+        err = traceback.format_exc()
+        print("WEBHOOK ERROR:", err)
+        return {"status": "error", "detail": err}
 
 @app.get("/")
 async def root():
