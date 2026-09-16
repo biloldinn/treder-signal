@@ -34,20 +34,22 @@ router = Router()
 
 @router.message(Command("start"))
 async def cmd_start(msg: Message):
-    if not is_super(msg.from_user.id):
-        return await msg.answer("❌ Bu bot faqat maxsus adminlar uchun ishlaydi.")
     await db.db_add_user(msg.from_user.id, msg.from_user.username, msg.from_user.full_name)
     STATES.pop(msg.from_user.id, None)
-    await msg.answer(
-        f"👋 Salom, <b>{msg.from_user.full_name}</b>!\n\n"
-        f"📌 <b>Yangi tartib bo'yicha qanday ishlaydi:</b>\n"
-        f"1️⃣ Botni kanalga <b>admin</b> qiling\n"
-        f"2️⃣ Kanal sozlamasidan qo'shilishni <b>'Zayavka orqali'</b> qilib qo'ying\n"
-        f"3️⃣ <b>📢 Reklama sozlash</b> orqali reklamangizni qo'shing\n"
-        f"4️⃣ Kimdir zayavka tashlaganda, <b>siz qabul qilganingizdan so'ng</b> bot uning lichkasiga reklamangizni tashlaydi! 🎉\n\n"
-        f"🆔 ID: <code>{msg.from_user.id}</code>",
-        reply_markup=main_menu(msg.from_user.id)
-    )
+    
+    if is_super(msg.from_user.id):
+        await msg.answer(
+            f"👋 Salom, <b>{msg.from_user.full_name}</b>!\n\n"
+            f"📌 <b>Yangi tartib bo'yicha qanday ishlaydi:</b>\n"
+            f"1️⃣ Botni kanalga <b>admin</b> qiling\n"
+            f"2️⃣ Kanal sozlamasidan qo'shilishni <b>'Zayavka orqali'</b> qilib qo'ying\n"
+            f"3️⃣ <b>📢 Reklama sozlash</b> orqali reklamangizni qo'shing\n"
+            f"4️⃣ Kimdir zayavka tashlaganda bot (yoki o'zingiz) qabul qilgach, foydalanuvchiga reklama tashlanadi!\n\n"
+            f"🆔 ID: <code>{msg.from_user.id}</code>",
+            reply_markup=main_menu(msg.from_user.id)
+        )
+    else:
+        await msg.answer(f"👋 Assalomu alaykum, <b>{msg.from_user.full_name}</b>!\n\nKanalimizga qo'shilish uchun zayavka tashlaganingizda, biz sizga sovg'a (reklama) yuboramiz. Botni bloklamang!")
 
 @router.message(Command("id"))
 async def cmd_id(msg: Message):
