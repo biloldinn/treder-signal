@@ -38,12 +38,11 @@ async def cmd_start(msg: Message):
     STATES.pop(msg.from_user.id, None)
     await msg.answer(
         f"👋 Salom, <b>{msg.from_user.full_name}</b>!\n\n"
-        f"📌 <b>Qanday ishlaydi:</b>\n"
+        f"📌 <b>Yangi tartib bo'yicha qanday ishlaydi:</b>\n"
         f"1️⃣ Botni kanalga <b>admin</b> qiling\n"
-        f"2️⃣ <b>📢 Reklama sozlash</b> bosing\n"
-        f"3️⃣ Rasm + matn + tugma nomi + link kiriting\n"
-        f"4️⃣ Preview ko'rib <b>tasdiqlang</b>\n"
-        f"5️⃣ Kim qo'shilsa — avtomatik reklama chiqadi! 🎉\n\n"
+        f"2️⃣ Kanal sozlamasidan qo'shilishni <b>'Zayavka orqali'</b> qilib qo'ying\n"
+        f"3️⃣ <b>📢 Reklama sozlash</b> orqali reklamangizni qo'shing\n"
+        f"4️⃣ Kimdir zayavka tashlaganda, <b>siz qabul qilganingizdan so'ng</b> bot uning lichkasiga reklamangizni tashlaydi! 🎉\n\n"
         f"🆔 ID: <code>{msg.from_user.id}</code>",
         reply_markup=main_menu(msg.from_user.id)
     )
