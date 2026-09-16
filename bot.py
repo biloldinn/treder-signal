@@ -149,16 +149,20 @@ async def channel_manage_kb(ch_id):
     ad = await db.db_get_ad(ch_id)
     ch = await db.db_get_channel(ch_id)
     rows = []
+    
+    # Har doim chiqadigan tugma
+    auto_text = "⛔ Zayavkani O'CHIRISH (Qo'lda)" if ch.get("auto_approve") else "✅ Zayavkani AVTO-QABUL QILISH"
+    rows.append([InlineKeyboardButton(text=auto_text, callback_data=f"toggleauto_{ch_id}")])
+
     if ad:
         toggle_text = "⛔ Reklamani O'CHIRISH (OFF)" if ad["is_active"] else "✅ Reklamani YOQISH (ON)"
-        auto_text = "⛔ Zayavka qabul qilishni O'CHIRISH" if ch.get("auto_approve") else "✅ Zayavkani AVTOMATIK qabul qilish"
         rows.append([InlineKeyboardButton(text=toggle_text, callback_data=f"toggle_{ch_id}")])
-        rows.append([InlineKeyboardButton(text=auto_text, callback_data=f"toggleauto_{ch_id}")])
         rows.append([InlineKeyboardButton(text="👁 Reklamani ko'rish (Preview)", callback_data=f"preview_{ch_id}")])
         rows.append([InlineKeyboardButton(text="✏️ Tahrirlash (qayta sozlash)", callback_data=f"edit_{ch_id}")])
         rows.append([InlineKeyboardButton(text="🗑 Reklamani o'chirish", callback_data=f"deladq_{ch_id}")])
     else:
         rows.append([InlineKeyboardButton(text="➕ Yangi reklama yaratish", callback_data=f"edit_{ch_id}")])
+    
     rows.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="setup_ad")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -170,22 +174,23 @@ async def cb_manage_channel(cb: CallbackQuery):
     if ch["owner_id"] != cb.from_user.id and not is_super(cb.from_user.id): return await cb.answer("Ruxsat yoq", show_alert=True)
 
     ad = await db.db_get_ad(ch_id)
+    auto_appr = "✅ <b>Yoqilgan (Bot qabul qiladi)</b>" if ch.get("auto_approve") else "⛔ <b>O'chirilgan (Qo'lda)</b>"
+    
     if ad:
         status = "✅ <b>Faol</b>" if ad["is_active"] else "⛔ <b>O'chirilgan</b>"
-        auto_appr = "✅ <b>Yoqilgan (Bot qabul qiladi)</b>" if ch.get("auto_approve") else "⛔ <b>O'chirilgan (O'zingiz qabul qilasiz)</b>"
         has_photo = "🖼 Rasm bor" if ad["photo_id"] else "📝 Rasmsiz"
         sent = await db.db_stats_by_channel(ch_id)
         text = (
             f"📡 <b>{ch['title']}</b>\n"
+            f"🤖 Avto-qabul: {auto_appr}\n"
             f"📋 <b>Reklama:</b>\n"
             f"📌 {status} | {has_photo}\n"
-            f"🤖 Avto-qabul: {auto_appr}\n"
             f"📝 <i>{ad['text'][:120]}...</i>\n"
             f"🔘 Tugma: <b>{ad['button_text']}</b>\n"
             f"📨 Yuborilgan: {sent} ta"
         )
     else:
-        text = f"📡 <b>{ch['title']}</b>\n⚠️ <i>Reklama sozlanmagan.</i>"
+        text = f"📡 <b>{ch['title']}</b>\n🤖 Avto-qabul: {auto_appr}\n\n⚠️ <i>Reklama hali sozlanmagan.</i>"
 
     await cb.message.edit_text(text, reply_markup=await channel_manage_kb(ch_id))
     await cb.answer()
